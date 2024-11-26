@@ -37,16 +37,16 @@ dist-hook:
 
 .PHONY : 
 
-all: html/index.html doc/cudd.pdf
+all: #html/index.html doc/cudd.pdf
 
 if HAVE_DOXYGEN
 
-html/index.html: Doxyfile $(lib_LTLIBRARIES)
-	@if $(AM_V_P); then dest='2>&1'; else dest='> /dev/null 2>&1'; fi; \
-	eval "$(DOXYGEN) $< $${dest}"
-
-clean-local:
-	rm -rf html doxygen_sqlite3.db
+##html/index.html: Doxyfile $(lib_LTLIBRARIES)
+##	@if $(AM_V_P); then dest='2>&1'; else dest='> /dev/null 2>&1'; fi; \
+##	eval "$(DOXYGEN) $< $${dest}"
+##
+##clean-local:
+##	rm -rf html doxygen_sqlite3.db
 
 else
 
