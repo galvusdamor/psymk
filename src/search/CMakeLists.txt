@@ -959,6 +959,7 @@ create_fast_downward_library(
     NAME symbolic
     HELP "Plugin containing the base for symbolic search"
     SOURCES
+        tasks/project_variables_task
         tasks/sdac_task
         symbolic/closed_list
         symbolic/frontier
