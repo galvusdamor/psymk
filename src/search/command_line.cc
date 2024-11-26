@@ -92,7 +92,21 @@ static shared_ptr<SearchAlgorithm> parse_cmd_line_aux(const vector<string> &args
     for (size_t i = 0; i < args.size(); ++i) {
         string arg = args[i];
         bool is_last = (i == args.size() - 1);
-        if (arg == "--root-task-transform") {
+        if (arg == "--symbolic-task-transform") {
+            if (is_last)
+                input_error("missing argument after --search");
+            ++i;
+            string transform_arg = args[i];
+            try {
+                parser::TokenStream tokens = parser::split_tokens(transform_arg);
+                parser::ASTNodePtr parsed = parser::parse(tokens);
+                parser::DecoratedASTNodePtr decorated = parsed->decorate();
+                plugins::Any constructed = decorated->construct();
+                tasks::symbolic_root_task = plugins::any_cast<shared_ptr<AbstractTask>>(constructed);
+            } catch (const utils::ContextError &e) {
+                input_error(e.get_message());
+            }
+        } else if (arg == "--root-task-transform") {
             if (is_last)
                 input_error("missing argument after --search");
             ++i;
@@ -222,6 +236,7 @@ shared_ptr<SearchAlgorithm> parse_cmd_line(
     }
     args = replace_old_style_predefinitions(args);
     move_arg(args, "--root-task-transform", 0);
+    move_arg(args, "--symbolic-task-transform", 0);
     return parse_cmd_line_aux(args);
 }
 

@@ -20,6 +20,7 @@ using utils::ExitCode;
 namespace tasks {
 static const int PRE_FILE_VERSION = 3;
 shared_ptr<AbstractTask> g_root_task = nullptr;
+shared_ptr<AbstractTask> symbolic_root_task = nullptr;
 
 struct ExplicitVariable {
     int domain_size;
