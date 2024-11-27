@@ -25,8 +25,50 @@ VariableProjectedTask::VariableProjectedTask(
 		  exit(-1);
 }
 
-int VariableProjectedTask::get_operator_cost(int index, bool is_axiom) const {
-    return parent->get_operator_cost(index, is_axiom);
+int VariableProjectedTask::get_num_variables() const {
+    return parent->get_num_variables();
+}
+
+string VariableProjectedTask::get_variable_name(int var) const {
+    return parent->get_variable_name(var);
+}
+
+int VariableProjectedTask::get_variable_domain_size(int var) const {
+    return parent->get_variable_domain_size(var);
+}
+
+int VariableProjectedTask::get_variable_axiom_layer(int var) const {
+    return parent->get_variable_axiom_layer(var);
+}
+
+int VariableProjectedTask::get_variable_default_axiom_value(int var) const {
+    return parent->get_variable_default_axiom_value(var);
+}
+
+string VariableProjectedTask::get_fact_name(const FactPair &fact) const {
+    return parent->get_fact_name(fact);
+}
+
+bool VariableProjectedTask::are_facts_mutex(const FactPair &fact1, const FactPair &fact2) const {
+    return parent->are_facts_mutex(fact1, fact2);
+}
+
+int VariableProjectedTask::get_num_operator_preconditions(int index, bool is_axiom) const {
+    return parent->get_num_operator_preconditions(index, is_axiom);
+}
+
+FactPair VariableProjectedTask::get_operator_precondition(
+    int op_index, int fact_index, bool is_axiom) const {
+    return parent->get_operator_precondition(op_index, fact_index, is_axiom);
+}
+
+int VariableProjectedTask::get_num_operator_effects(int op_index, bool is_axiom) const {
+    return parent->get_num_operator_effects(op_index, is_axiom);
+}
+
+FactPair VariableProjectedTask::get_operator_effect(
+    int op_index, int eff_index, bool is_axiom) const {
+    return parent->get_operator_effect(op_index, eff_index, is_axiom);
 }
 
 class VariableProjectedTaskFeature : public plugins::TypedFeature<AbstractTask, VariableProjectedTask> {
