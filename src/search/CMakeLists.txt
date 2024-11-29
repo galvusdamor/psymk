@@ -960,6 +960,9 @@ create_fast_downward_library(
     HELP "Plugin containing the base for symbolic search"
     SOURCES
         tasks/project_variables_task
+        search_algorithms/partially_symbolic
+        search_algorithms/plugin_psymb
+
         tasks/sdac_task
         symbolic/closed_list
         symbolic/frontier
@@ -999,6 +1002,10 @@ create_fast_downward_library(
         symbolic/transition_relations/disjunctive_transition_relation
         tasks/effect_aggregated_task
     DEPENDS 
+		search_common
+		null_pruning_method
+        ordered_set
+        successor_generator
         sdac
 )
 
