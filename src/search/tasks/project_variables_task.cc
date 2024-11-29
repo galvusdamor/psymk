@@ -1,6 +1,6 @@
 #include "project_variables_task.h"
 
-#include "../operator_cost.h"
+//#include "../operator_cost.h"
 
 #include "../plugins/plugin.h"
 #include "../tasks/root_task.h"
@@ -22,7 +22,6 @@ VariableProjectedTask::VariableProjectedTask(
 		  utils::g_log << "This is a test" << endl;
 		  for (int v : _variables_to_keep)
 			  utils::g_log << "VAR: " << v << endl;
-		  exit(-1);
 }
 
 int VariableProjectedTask::get_num_variables() const {
