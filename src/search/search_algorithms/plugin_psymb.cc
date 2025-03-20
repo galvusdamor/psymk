@@ -21,9 +21,12 @@ public:
         //    "use preferred operators of these evaluators", "[]");
         //SearchAlgorithm::add_succ_order_options(*this);
         SearchAlgorithm::add_options_to_feature(*this);
+        symbolic::SymParameters::add_options_to_feature(*this);
+        symbolic::SymVariables::add_options_to_feature(*this);
     }
 
     virtual shared_ptr<partially_symbolic::PartiallySymbolicSearch> create_component(const plugins::Options &options, const utils::Context &) const override {
+         cout << "Hello!" <<endl;
         shared_ptr<partially_symbolic::PartiallySymbolicSearch> search_algorithm = make_shared<partially_symbolic::PartiallySymbolicSearch>(options);
         return search_algorithm;
     }

@@ -962,6 +962,8 @@ create_fast_downward_library(
         tasks/project_variables_task
         search_algorithms/partially_symbolic
         search_algorithms/plugin_psymb
+        search_algorithms/explicit_search
+        search_algorithms/plugin_exp
 
         tasks/sdac_task
         symbolic/closed_list

@@ -25,23 +25,24 @@ VariableProjectedTask::VariableProjectedTask(
 }
 
 int VariableProjectedTask::get_num_variables() const {
-    return parent->get_num_variables();
+    //return parent->get_num_variables();
+    return variables_to_keep.size();
 }
 
 string VariableProjectedTask::get_variable_name(int var) const {
-    return parent->get_variable_name(var);
+    return parent->get_variable_name(variables_to_keep[var]);
 }
 
 int VariableProjectedTask::get_variable_domain_size(int var) const {
-    return parent->get_variable_domain_size(var);
+    return parent->get_variable_domain_size(variables_to_keep[var]);
 }
 
 int VariableProjectedTask::get_variable_axiom_layer(int var) const {
-    return parent->get_variable_axiom_layer(var);
+    return parent->get_variable_axiom_layer(variables_to_keep[var]);
 }
 
 int VariableProjectedTask::get_variable_default_axiom_value(int var) const {
-    return parent->get_variable_default_axiom_value(var);
+    return parent->get_variable_default_axiom_value(variables_to_keep[var]);
 }
 
 string VariableProjectedTask::get_fact_name(const FactPair &fact) const {

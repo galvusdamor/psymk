@@ -1,4 +1,4 @@
-#include "partially_symbolic.h"
+#include "explicit_search.h"
 
 #include "../open_list_factory.h"
 
@@ -10,21 +10,17 @@
 #include "../utils/rng.h"
 #include "../utils/rng_options.h"
 
-#include "../symbolic/transition_relations/transition_relation.h"
-
 #include <algorithm>
 #include <limits>
 #include <vector>
 
 using namespace std;
 
-namespace partially_symbolic {
-PartiallySymbolicSearch::PartiallySymbolicSearch(const plugins::Options &opts)
+namespace explicit_search {
+ExplicitSearch::ExplicitSearch(const plugins::Options &opts)
     : SearchAlgorithm(opts),
 	  evaluator(opts.get<shared_ptr<Evaluator>>("eval")),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
-      vars(make_shared<symbolic::SymVariables>(opts, tasks::symbolic_root_task)), // create the symbolic variables for the symbolic root task
-	  sym_params(opts, tasks::symbolic_root_task),
       //open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
       //          create_edge_open_list()),
       //randomize_successors(opts.get<bool>("randomize_successors")),
@@ -36,11 +32,6 @@ PartiallySymbolicSearch::PartiallySymbolicSearch(const plugins::Options &opts)
       current_g(0),
       current_real_g(0),
       current_eval_context(current_state, 0, true, &statistics) {
-        vars->init();
-    
-	  mgr = make_shared<symbolic::SymStateSpaceManager>(vars.get(), sym_params, tasks::symbolic_root_task);
-
-
     cerr << "Second Hello!" <<endl;
 	if (has_sdac_cost) {
         cerr << "error: explicit search does not support state-dependent action costs. "
@@ -54,7 +45,7 @@ PartiallySymbolicSearch::PartiallySymbolicSearch(const plugins::Options &opts)
 //    preferred_operator_evaluators = evaluators;
 //}
 
-void PartiallySymbolicSearch::initialize() {
+void ExplicitSearch::initialize() {
     log << "Conducting Partially Symbolic Search, (real) bound = " << bound << endl;
 
     //assert(open_list);
@@ -62,18 +53,15 @@ void PartiallySymbolicSearch::initialize() {
 	EvaluationContext new_eval_context(initial_state, 0, true, nullptr);
 	EvaluationResult result = evaluator->compute_result(new_eval_context);
 	log << "Initial heuristic value: " << result.get_evaluator_value() << endl;
-
-	// get the symbolic initial state
-	BDD symb_init = mgr->get_initial_state();
 }
 
-vector<OperatorID> PartiallySymbolicSearch::get_successor_operators() const {
+vector<OperatorID> ExplicitSearch::get_successor_operators() const {
     vector<OperatorID> applicable_operators;
     successor_generator.generate_applicable_ops(current_state, applicable_operators);
     return applicable_operators;
 }
 
-void PartiallySymbolicSearch::generate_successors() {
+void ExplicitSearch::generate_successors() {
 
     vector<OperatorID> successor_operators = get_successor_operators();
     statistics.inc_generated(successor_operators.size());
@@ -86,18 +74,6 @@ void PartiallySymbolicSearch::generate_successors() {
 		// compute the successor state and set the "current state" to be this successor state
     	OperatorProxy current_operator = task_proxy.get_operators()[op_id];
 		current_state = state_registry.get_successor_state(current_state, current_operator); 
-	
-		
-		// get the symbolic initial state
-		BDD symb_init = mgr->get_initial_state();
-		// need to use "at" function here, as the returned map is const
-		std::vector<symbolic::TransitionRelationPtr> transitions = mgr->get_transition_relations()->get_transition_relations().at(op_id.get_index());
-        BDD result = mgr->zeroBDD();
-		for (symbolic::TransitionRelationPtr split_transition_relation : transitions){
-			BDD successor = split_transition_relation->image(symb_init);
-            result = result | successor;
-		}
-
         
         //if (new_real_g < bound) {
         //    EvaluationContext new_eval_context(
@@ -107,7 +83,7 @@ void PartiallySymbolicSearch::generate_successors() {
     }
 }
 
-SearchStatus PartiallySymbolicSearch::fetch_next_state() {
+SearchStatus ExplicitSearch::fetch_next_state() {
     //if (open_list->empty()) {
     //    log << "Completely explored state space -- no solution!" << endl;
     //    return FAILED;
@@ -139,7 +115,7 @@ SearchStatus PartiallySymbolicSearch::fetch_next_state() {
     return IN_PROGRESS;
 }
 
-SearchStatus PartiallySymbolicSearch::step() {
+SearchStatus ExplicitSearch::step() {
 	log << "Performing a step" << endl;
     return FAILED;
 	return fetch_next_state();
@@ -202,7 +178,7 @@ SearchStatus PartiallySymbolicSearch::step() {
     //}
 }
 
-void PartiallySymbolicSearch::print_statistics() const {
+void ExplicitSearch::print_statistics() const {
     statistics.print_detailed_statistics();
     search_space.print_statistics();
 }
