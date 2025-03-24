@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <limits>
 #include <vector>
+#include<queue>
 
 using namespace std;
 
@@ -21,8 +22,8 @@ ExplicitSearch::ExplicitSearch(const plugins::Options &opts)
     : SearchAlgorithm(opts),
 	  evaluator(opts.get<shared_ptr<Evaluator>>("eval")),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
-      //open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
-      //          create_edge_open_list()),
+    //   open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
+    //            create_edge_open_list()),
       //randomize_successors(opts.get<bool>("randomize_successors")),
       //preferred_successors_first(opts.get<bool>("preferred_successors_first")),
       //rng(utils::parse_rng_from_options(opts)),
@@ -46,7 +47,7 @@ ExplicitSearch::ExplicitSearch(const plugins::Options &opts)
 //}
 
 void ExplicitSearch::initialize() {
-    log << "Conducting Partially Symbolic Search, (real) bound = " << bound << endl;
+    log << "Conducting Explicit Search, (real) bound = " << bound << endl;
 
     //assert(open_list);
     State initial_state = state_registry.get_initial_state();
@@ -73,7 +74,8 @@ void ExplicitSearch::generate_successors() {
 
 		// compute the successor state and set the "current state" to be this successor state
     	OperatorProxy current_operator = task_proxy.get_operators()[op_id];
-		current_state = state_registry.get_successor_state(current_state, current_operator); 
+		current_state = state_registry.get_successor_state(current_state, current_operator);
+
         
         //if (new_real_g < bound) {
         //    EvaluationContext new_eval_context(
@@ -115,10 +117,82 @@ SearchStatus ExplicitSearch::fetch_next_state() {
     return IN_PROGRESS;
 }
 
+class SearchState {
+public:
+    State state;
+    int g;
+    int h;
+
+    SearchState(State & _state, int _g, int _h) : state(_state), g(_g), h(_h) {}
+ 
+    int f() const {return g+h;}
+};
+
+class SearchStateCompare {
+public:
+    bool operator()(const SearchState & a, const SearchState & b)
+    {
+        if (a.f() > b.f()) {
+            return true;
+        }
+        if (a.f() < b.f()) {
+            return false;
+        }
+        if (a.g < b.g) {
+            return true;
+        }
+        if (a.g > b.g) {
+            return false;
+        }
+        return a.state.get_id().get_value() < b.state.get_id().get_value();
+    }
+};
+
 SearchStatus ExplicitSearch::step() {
 	log << "Performing a step" << endl;
+    
+    priority_queue<SearchState, vector<SearchState >, SearchStateCompare > open;
+    // int f_init = current_g + result.get_evaluator_value(current_state);
+
+    SearchState initialSearchState (current_state, 99, 77);
+
+    open.push(initialSearchState);
+    while (open.size() > 0){
+        SearchState queue_top = open.top(); 
+        State & queue_state = queue_top.state; open.pop();
+        // EvaluationContext new_eval_context(queue_state, 0, true, nullptr);
+	    // EvaluationResult result = evaluator->compute_result(new_eval_context);
+        // log << "MADE IT" << result.get_evaluator_value() << endl;
+
+    vector<OperatorID> applicable_operators;
+    successor_generator.generate_applicable_ops(queue_state, applicable_operators);
+
+    statistics.inc_generated(applicable_operators.size());
+
+    for (OperatorID op_id : applicable_operators) {
+        OperatorProxy op = task_proxy.get_operators()[op_id];
+        //int new_g = current_g + get_adjusted_cost(op);
+        int new_real_g = current_real_g + op.get_cost();
+
+		// compute the successor state and set the "current state" to be this successor state
+    	OperatorProxy current_operator = task_proxy.get_operators()[op_id];
+		State next_state = state_registry.get_successor_state(queue_state, current_operator);
+
+        SearchState next_search_state (next_state, 0, 1);
+        open.push(next_search_state);
+        
+        //if (new_real_g < bound) {
+        //    EvaluationContext new_eval_context(
+        //        current_eval_context, new_g, true, nullptr);
+        //    open_list->insert(new_eval_context, make_pair(current_state.get_id(), op_id));
+        //}
+    }
+
+    }
+
+
     return FAILED;
-	return fetch_next_state();
+	// return fetch_next_state();
     // Invariants:
     // - current_state is the next state for which we want to compute the heuristic.
     // - current_predecessor is a permanent pointer to the predecessor of that state.
@@ -127,59 +201,59 @@ SearchStatus ExplicitSearch::step() {
     // - current_real_g is the g value of the current state (using real costs)
 
 
-    //SearchNode node = search_space.get_node(current_state);
-    //bool reopen = reopen_closed_nodes && !node.is_new() &&
-    //    !node.is_dead_end() && (current_g < node.get_g());
+//     SearchNode node = search_space.get_node(current_state);
+//     bool reopen = reopen_closed_nodes && !node.is_new() &&
+//        !node.is_dead_end() && (current_g < node.get_g());
 
-    //if (node.is_new() || reopen) {
-    //    if (current_operator_id != OperatorID::no_operator) {
-    //        assert(current_predecessor_id != StateID::no_state);
-    //        if (!path_dependent_evaluators.empty()) {
-    //            State parent_state = state_registry.lookup_state(current_predecessor_id);
-    //            for (Evaluator *evaluator : path_dependent_evaluators)
-    //                evaluator->notify_state_transition(
-    //                    parent_state, current_operator_id, current_state);
-    //        }
-    //    }
-    //    statistics.inc_evaluated_states();
-    //    if (!open_list->is_dead_end(current_eval_context)) {
-    //        // TODO: Generalize code for using multiple evaluators.
-    //        if (current_predecessor_id == StateID::no_state) {
-    //            node.open_initial();
-    //            if (search_progress.check_progress(current_eval_context))
-    //                statistics.print_checkpoint_line(current_g);
-    //        } else {
-    //            State parent_state = state_registry.lookup_state(current_predecessor_id);
-    //            SearchNode parent_node = search_space.get_node(parent_state);
-    //            OperatorProxy current_operator = task_proxy.get_operators()[current_operator_id];
-    //            if (reopen) {
-    //                node.reopen(parent_node, current_operator, get_adjusted_cost(current_operator));
-    //                statistics.inc_reopened();
-    //            } else {
-    //                node.open(parent_node, current_operator, get_adjusted_cost(current_operator));
-    //            }
-    //        }
-    //        node.close();
-    //        if (check_goal_and_set_plan(current_state))
-    //            return SOLVED;
-    //        if (search_progress.check_progress(current_eval_context)) {
-    //            statistics.print_checkpoint_line(current_g);
-    //            reward_progress();
-    //        }
-    //        generate_successors();
-    //        statistics.inc_expanded();
-    //    } else {
-    //        node.mark_as_dead_end();
-    //        statistics.inc_dead_ends();
-    //    }
-    //    if (current_predecessor_id == StateID::no_state) {
-    //        print_initial_evaluator_values(current_eval_context);
-    //    }
-    //}
+//     if (node.is_new() || reopen) {
+//        if (current_operator_id != OperatorID::no_operator) {
+//            assert(current_predecessor_id != StateID::no_state);
+//            if (!path_dependent_evaluators.empty()) {
+//                State parent_state = state_registry.lookup_state(current_predecessor_id);
+//                for (Evaluator *evaluator : path_dependent_evaluators)
+//                    evaluator->notify_state_transition(
+//                        parent_state, current_operator_id, current_state);
+//            }
+//        }
+//        statistics.inc_evaluated_states();
+//        if (!open_list->is_dead_end(current_eval_context)) {
+//            // TODO: Generalize code for using multiple evaluators.
+//            if (current_predecessor_id == StateID::no_state) {
+//                node.open_initial();
+//                if (search_progress.check_progress(current_eval_context))
+//                    statistics.print_checkpoint_line(current_g);
+//            } else {
+//                State parent_state = state_registry.lookup_state(current_predecessor_id);
+//                SearchNode parent_node = search_space.get_node(parent_state);
+//                OperatorProxy current_operator = task_proxy.get_operators()[current_operator_id];
+//                if (reopen) {
+//                    node.reopen(parent_node, current_operator, get_adjusted_cost(current_operator));
+//                    statistics.inc_reopened();
+//                } else {
+//                    node.open(parent_node, current_operator, get_adjusted_cost(current_operator));
+//                }
+//            }
+//            node.close();
+//            if (check_goal_and_set_plan(current_state))
+//                return SOLVED;
+//            if (search_progress.check_progress(current_eval_context)) {
+//                statistics.print_checkpoint_line(current_g);
+//                reward_progress();
+//            }
+//            generate_successors();
+//            statistics.inc_expanded();
+//        } else {
+//            node.mark_as_dead_end();
+//            statistics.inc_dead_ends();
+//        }
+//        if (current_predecessor_id == StateID::no_state) {
+//            print_initial_evaluator_values(current_eval_context);
+//        }
+//     }
 }
 
-void ExplicitSearch::print_statistics() const {
-    statistics.print_detailed_statistics();
-    search_space.print_statistics();
-}
+ void ExplicitSearch::print_statistics() const {
+     statistics.print_detailed_statistics();
+     search_space.print_statistics();
+ }
 }
