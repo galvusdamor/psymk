@@ -9,11 +9,14 @@
 #include "../utils/logging.h"
 #include "../utils/rng.h"
 #include "../utils/rng_options.h"
+#include "../search_space.h"
 
 #include <algorithm>
 #include <limits>
 #include <vector>
 #include<queue>
+#include<list>
+
 
 using namespace std;
 
@@ -148,38 +151,67 @@ public:
     }
 };
 
+class StateCompare {
+public:
+    bool operator() (const State & a, const State & b)
+    {
+        return a.get_id().get_value() < b.get_id().get_value();
+    }
+};
+
+/* TO DO:
+- reopen closed if g-val lower (inconsistent h)
+- save the best predecessor
+- update statistics 
+*/
 SearchStatus ExplicitSearch::step() {
 	log << "Performing a step" << endl;
     
     priority_queue<SearchState, vector<SearchState >, SearchStateCompare > open;
-    // int f_init = current_g + result.get_evaluator_value(current_state);
+    set<State, StateCompare> closed;
 
-    SearchState initialSearchState (current_state, 99, 77);
+    EvaluationContext new_eval_context(current_state, 0, true, nullptr);
+	EvaluationResult result = evaluator->compute_result(new_eval_context);
+    int h_val = result.get_evaluator_value();
+    SearchState initialSearchState (current_state, 0, h_val);
 
     open.push(initialSearchState);
     while (open.size() > 0){
+        log << "Open size: " << open.size() << ", Closed size: " << closed.size() << endl;        
         SearchState queue_top = open.top(); 
-        State & queue_state = queue_top.state; open.pop();
-        // EvaluationContext new_eval_context(queue_state, 0, true, nullptr);
-	    // EvaluationResult result = evaluator->compute_result(new_eval_context);
-        // log << "MADE IT" << result.get_evaluator_value() << endl;
+        State & queue_state = queue_top.state; 
+        int & g_val = queue_top.g; open.pop();
+        if (check_goal_and_set_plan(queue_state))
+            return SOLVED;
+        closed.insert(queue_state);
 
-    vector<OperatorID> applicable_operators;
-    successor_generator.generate_applicable_ops(queue_state, applicable_operators);
+        vector<OperatorID> applicable_operators;
+        successor_generator.generate_applicable_ops(queue_state, applicable_operators);
 
-    statistics.inc_generated(applicable_operators.size());
+        statistics.inc_generated(applicable_operators.size());
 
-    for (OperatorID op_id : applicable_operators) {
-        OperatorProxy op = task_proxy.get_operators()[op_id];
-        //int new_g = current_g + get_adjusted_cost(op);
-        int new_real_g = current_real_g + op.get_cost();
 
-		// compute the successor state and set the "current state" to be this successor state
-    	OperatorProxy current_operator = task_proxy.get_operators()[op_id];
-		State next_state = state_registry.get_successor_state(queue_state, current_operator);
+        for (OperatorID op_id : applicable_operators) {
 
-        SearchState next_search_state (next_state, 0, 1);
-        open.push(next_search_state);
+            OperatorProxy op = task_proxy.get_operators()[op_id];
+            int new_g = g_val + op.get_cost();
+
+		    // compute the successor state and set the "next state" to be this successor state
+    	    OperatorProxy current_operator = task_proxy.get_operators()[op_id];
+            State next_state = state_registry.get_successor_state(queue_state, current_operator);
+           
+            if (closed.find(next_state) != closed.end()) {
+                continue;
+                
+            }
+            else {
+                EvaluationContext new_eval_context(next_state, new_g, true, nullptr);
+                EvaluationResult result = evaluator->compute_result(new_eval_context);
+                int new_h = result.get_evaluator_value();
+
+                SearchState next_search_state (next_state, new_g, new_h);
+                open.push(next_search_state);
+            }
         
         //if (new_real_g < bound) {
         //    EvaluationContext new_eval_context(
