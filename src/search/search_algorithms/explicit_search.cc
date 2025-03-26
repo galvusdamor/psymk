@@ -183,6 +183,10 @@ SearchStatus ExplicitSearch::step() {
         int & g_val = queue_top.g; open.pop();
         if (check_goal_and_set_plan(queue_state))
             return SOLVED;
+        if (closed.find(queue_state) != closed.end()) {
+                continue;
+            }
+        else {
         closed.insert(queue_state);
 
         vector<OperatorID> applicable_operators;
@@ -202,7 +206,6 @@ SearchStatus ExplicitSearch::step() {
            
             if (closed.find(next_state) != closed.end()) {
                 continue;
-                
             }
             else {
                 EvaluationContext new_eval_context(next_state, new_g, true, nullptr);
@@ -212,6 +215,7 @@ SearchStatus ExplicitSearch::step() {
                 SearchState next_search_state (next_state, new_g, new_h);
                 open.push(next_search_state);
             }
+        }
         
         //if (new_real_g < bound) {
         //    EvaluationContext new_eval_context(
