@@ -20,8 +20,11 @@ VariableProjectedTask::VariableProjectedTask(
     : DelegatingTask(parent),
       variables_to_keep(_variables_to_keep) {
 		  utils::g_log << "This is a test" << endl;
-		  for (int v : _variables_to_keep)
-			  utils::g_log << "VAR: " << v << endl;
+		  for (int v : _variables_to_keep){
+			  int newVarID = parent_vars_to_my_vars.size();
+			  utils::g_log << "VAR: " << v << " becomes " << newVarID << endl;
+			  parent_vars_to_my_vars[v] = newVarID;
+		  }
 }
 
 int VariableProjectedTask::get_num_variables() const {
@@ -54,21 +57,65 @@ bool VariableProjectedTask::are_facts_mutex(const FactPair &fact1, const FactPai
 }
 
 int VariableProjectedTask::get_num_operator_preconditions(int index, bool is_axiom) const {
-    return parent->get_num_operator_preconditions(index, is_axiom);
+    int num_parent_preconditions = parent->get_num_operator_preconditions(index, is_axiom);
+	int num_me = 0;
+	for (int p = 0; p < num_parent_preconditions; p++){
+		FactPair pre = parent->get_operator_precondition(index,p,is_axiom);
+		if (parent_vars_to_my_vars.count(pre.var)) num_me++;
+	}
+
+	return num_me;
 }
 
 FactPair VariableProjectedTask::get_operator_precondition(
     int op_index, int fact_index, bool is_axiom) const {
-    return parent->get_operator_precondition(op_index, fact_index, is_axiom);
+
+	int num_parent_preconditions = parent->get_num_operator_preconditions(op_index, is_axiom);
+	int num_me = 0;
+	for (int p = 0; p < num_parent_preconditions; p++){
+		FactPair pre = parent->get_operator_precondition(op_index,p,is_axiom);
+		auto it = parent_vars_to_my_vars.find(pre.var);
+		if (it != parent_vars_to_my_vars.end()) {
+			if (fact_index == num_me){
+				int newVariable = it->second; 
+				FactPair ret(newVariable,pre.value);
+			}
+			num_me++;
+		}
+	}
+	assert(false);
+	return FactPair(-1,-1);
 }
 
 int VariableProjectedTask::get_num_operator_effects(int op_index, bool is_axiom) const {
-    return parent->get_num_operator_effects(op_index, is_axiom);
+    int num_parent_effects = parent->get_num_operator_effects(op_index, is_axiom);
+	int num_me = 0;
+	for (int e = 0; e < num_parent_effects; e++){
+		FactPair eff = parent->get_operator_effect(op_index,e,is_axiom);
+		if (parent_vars_to_my_vars.count(eff.var)) num_me++;
+	}
+
+	return num_me;
 }
 
 FactPair VariableProjectedTask::get_operator_effect(
     int op_index, int eff_index, bool is_axiom) const {
-    return parent->get_operator_effect(op_index, eff_index, is_axiom);
+   
+   	int num_parent_effects = parent->get_num_operator_effects(op_index, is_axiom);
+	int num_me = 0;
+	for (int e = 0; e < num_parent_effects; e++){
+		FactPair eff = parent->get_operator_effect(op_index,e,is_axiom);
+		if (parent_vars_to_my_vars.count(eff.var)){
+			if (eff_index == num_me){
+				int newVariable = parent_vars_to_my_vars.at(eff.var);
+				FactPair ret(newVariable,eff.value);
+				return ret;
+			}
+			num_me++;
+		}
+	}
+	assert(false);
+	return FactPair(-1,-1);
 }
 
 class VariableProjectedTaskFeature : public plugins::TypedFeature<AbstractTask, VariableProjectedTask> {

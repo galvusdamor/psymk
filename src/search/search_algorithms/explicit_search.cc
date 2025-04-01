@@ -133,7 +133,7 @@ public:
 
 class SearchStateCompare {
 public:
-    bool operator()(const SearchState & a, const SearchState & b)
+    bool operator()(const SearchState & a, const SearchState & b) const
     {
         if (a.f() > b.f()) {
             return true;
@@ -153,7 +153,7 @@ public:
 
 class StateCompare {
 public:
-    bool operator() (const State & a, const State & b)
+    bool operator() (const State & a, const State & b) const
     {
         return a.get_id().get_value() < b.get_id().get_value();
     }

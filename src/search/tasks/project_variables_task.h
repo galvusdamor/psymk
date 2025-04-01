@@ -2,6 +2,7 @@
 #define TASKS_PROJECT_VARIABLES_TASK_H
 
 #include "delegating_task.h"
+#include <map>
 
 #include "../operator_cost.h"
 
@@ -14,6 +15,7 @@ namespace tasks {
   Task transformation that projects away some of the variables in the input*/
 class VariableProjectedTask : public DelegatingTask {
     const std::vector<int> variables_to_keep; // these are the FDR variables that should be kept, i.e., all others are projected away
+	std::map<int,int> parent_vars_to_my_vars;	
 public:
     VariableProjectedTask(
         const std::shared_ptr<AbstractTask> &parent,
