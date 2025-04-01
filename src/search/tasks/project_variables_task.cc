@@ -53,7 +53,8 @@ string VariableProjectedTask::get_fact_name(const FactPair &fact) const {
 }
 
 bool VariableProjectedTask::are_facts_mutex(const FactPair &fact1, const FactPair &fact2) const {
-    return parent->are_facts_mutex(fact1, fact2);
+	return false;
+    //return parent->are_facts_mutex(fact1, fact2);
 }
 
 int VariableProjectedTask::get_num_operator_preconditions(int index, bool is_axiom) const {
@@ -63,13 +64,12 @@ int VariableProjectedTask::get_num_operator_preconditions(int index, bool is_axi
 		FactPair pre = parent->get_operator_precondition(index,p,is_axiom);
 		if (parent_vars_to_my_vars.count(pre.var)) num_me++;
 	}
-
 	return num_me;
 }
 
 FactPair VariableProjectedTask::get_operator_precondition(
     int op_index, int fact_index, bool is_axiom) const {
-
+	
 	int num_parent_preconditions = parent->get_num_operator_preconditions(op_index, is_axiom);
 	int num_me = 0;
 	for (int p = 0; p < num_parent_preconditions; p++){
@@ -79,6 +79,7 @@ FactPair VariableProjectedTask::get_operator_precondition(
 			if (fact_index == num_me){
 				int newVariable = it->second; 
 				FactPair ret(newVariable,pre.value);
+				return ret;
 			}
 			num_me++;
 		}
@@ -117,6 +118,50 @@ FactPair VariableProjectedTask::get_operator_effect(
 	assert(false);
 	return FactPair(-1,-1);
 }
+
+
+int VariableProjectedTask::get_num_goals() const {
+    int num_parent_goals = parent->get_num_goals();
+	int num_me = 0;
+	for (int g = 0; g < num_parent_goals; g++){
+		FactPair gl = parent->get_goal_fact(g);
+		if (parent_vars_to_my_vars.count(gl.var)) num_me++;
+	}
+
+	return num_me;
+}
+
+FactPair VariableProjectedTask::get_goal_fact(int index) const {
+    int num_parent_goals = parent->get_num_goals();
+	int num_me = 0;
+	for (int g = 0; g < num_parent_goals; g++){
+		FactPair gl = parent->get_goal_fact(g);
+		if (parent_vars_to_my_vars.count(gl.var)){
+			if (index == num_me){
+				int newVariable = parent_vars_to_my_vars.at(gl.var);
+				FactPair ret(newVariable,gl.value);
+				return ret;
+			}
+			num_me++;
+		}
+	}
+	assert(false);
+	return FactPair(-1,-1);
+}
+
+vector<int> VariableProjectedTask::get_initial_state_values() const {
+    vector<int> newInit(variables_to_keep.size());
+	for(int v = 0; v < variables_to_keep.size(); v++)
+		newInit[v] = parent->get_initial_state_values()[variables_to_keep[v]];
+	return newInit;
+}
+
+vector<MutexGroup> VariableProjectedTask::get_mutex_groups() const {
+    vector<MutexGroup> _empty;
+	return _empty;
+}
+
+
 
 class VariableProjectedTaskFeature : public plugins::TypedFeature<AbstractTask, VariableProjectedTask> {
 public:
